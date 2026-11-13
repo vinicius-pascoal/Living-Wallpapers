@@ -168,7 +168,7 @@ class GalaxyScene : SceneRenderer {
     // ---------- Galáxia espiral ----------
 
     private fun galaxy(cx: Float, cy: Float, radius: Float, t: Float, settings: WallpaperSettings) {
-        val core = coreCache.get(56, 56, ::paintCore)
+        val core = coreCache.get(56, 56, draw = ::paintCore)
         p.bitmap(core, cx - 28f, cy - 28f)
 
         val fraction = settings.effectiveParticles() / 77f

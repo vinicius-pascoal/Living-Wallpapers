@@ -2,6 +2,8 @@ package com.livingwallpapers.app.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
+import com.livingwallpapers.app.scene.DayCycle
 import com.livingwallpapers.app.scene.SceneRegistry
 
 object SettingsRepository {
@@ -13,12 +15,17 @@ object SettingsRepository {
     private const val KEY_PARTICLES = "particles"
     private const val KEY_PARALLAX = "parallax"
     private const val KEY_SAVER = "battery_saver"
+    private const val KEY_DEBUG_HOUR = "debug_hour"
 
     fun preferences(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun load(context: Context): WallpaperSettings {
         val prefs = preferences(context)
+        // Só em builds de debug: permite fixar a hora do ciclo dia/noite para testes.
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            DayCycle.overrideHour = prefs.getFloat(KEY_DEBUG_HOUR, -1f)
+        }
         return WallpaperSettings(
             sceneId = SceneRegistry.find(prefs.getString(KEY_SCENE, null)).id,
             maxFps = prefs.getInt(KEY_FPS, 30).let { if (it in listOf(15, 30, 60)) it else 30 },

@@ -1,6 +1,8 @@
 package com.livingwallpapers.app.scene.fantasy
 
 import android.graphics.Bitmap
+import com.livingwallpapers.app.scene.DayCycle
+import com.livingwallpapers.app.scene.LandscapeTint
 import com.livingwallpapers.app.scene.LayerCache
 import com.livingwallpapers.app.scene.Noise
 import com.livingwallpapers.app.scene.PixelPainter
@@ -15,7 +17,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * Mundo fantástico ao pôr do sol: ilhas flutuantes que derivam e balançam, cachoeiras caindo no
+ * Mundo fantástico com ciclo de dia e noite (segue o relógio): ilhas flutuantes que derivam e balançam, cachoeiras caindo no
  * mar de nuvens, nuvens em camadas, castelo nas montanhas, pássaros e esporos luminosos.
  * Ilhas e nuvens são pré-desenhadas em bitmaps; por quadro só se movem e animam detalhes.
  */
@@ -57,7 +59,13 @@ class FantasyScene : SceneRenderer {
         val dx = if (settings.parallax) tiltX.coerceIn(-1f, 1f) else 0f
         val dy = if (settings.parallax) tiltY.coerceIn(-1f, 1f) else 0f
 
-        p.bitmap(skyCache.get(bitmap.width, bitmap.height, ::paintSky), 0f, 0f)
+        DayCycle.update()
+        DayCycle.pickGradient(SKY_BY_PHASE, skyColors)
+        p.bitmap(skyCache.get(bitmap.width, bitmap.height, DayCycle.cacheKey(), ::paintSky), 0f, 0f)
+        stars(w, h, t)
+        sunAndMoon(w, h)
+        // Paisagem, ilhas e nuvens recebem a luz da hora do dia.
+        p.filter = landscapeTint.current()
         mountains(w, h, dx * 1.5f, dy * .8f)
         clouds(farClouds, w, h, t, dx * 2f, dy)
         islands(farIslands, w, h, t, dx * 3f, dy * 1.5f, settings)
@@ -66,34 +74,62 @@ class FantasyScene : SceneRenderer {
         birds(w, h, t, dx * 4f, dy * 2f)
         cloudSea(w, h, t, dx * 6f, .84f, 3f, 5f, color(0xFFC995BF), color(0xFFF2C4D4))
         cloudSea(w, h, t, dx * 10f, .91f, 4f, 9f, color(0xFFF4D3DE), color(0xFFFFF1EC))
+        p.filter = null
         spores(w, h, t, settings, dx, dy)
     }
 
-    // ---------- Céu (estático) ----------
+    // ---------- Céu (degradê em cache, redesenhado quando a hora muda a cor) ----------
+
+    private val skyColors = IntArray(SKY_DUSK.size)
+    private val landscapeTint = LandscapeTint(arrayOf(
+        floatArrayOf(.42f, .42f, .62f, 0f, 0f, 10f),      // noite: azulada e escura
+        floatArrayOf(1f, .96f, 1f, 8f, 2f, 6f),           // amanhecer: perto da arte original
+        floatArrayOf(.95f, 1.06f, 1.12f, 10f, 18f, 22f),  // dia: claro e menos rosado
+        floatArrayOf(1f, 1f, 1f, 0f, 0f, 0f),             // entardecer: arte original
+    ))
+    private val sunHalo = LayerCache()
+    private val starField = List(34) { Noise.hash(it * 3 + 500) to Noise.hash(it * 3 + 501) }
 
     private fun paintSky(sp: PixelPainter) {
-        val w = sp.width
-        val h = sp.height
-        sp.verticalGradient(0f, h * .8f, SKY)
-        sp.fill(0f, h * .8f, w, h, SKY.last())
-        // Estrelas tímidas no alto do céu.
-        val r = Random(55)
-        repeat(34) {
-            val y = r.nextFloat() * h * .22f
-            sp.pixel(r.nextFloat() * w, y, withAlpha(color(0xFFFFF2FF), (200 - y / h * 600).toInt()))
+        sp.verticalGradient(0f, sp.height * .8f, skyColors)
+        sp.fill(0f, sp.height * .8f, sp.width, sp.height, skyColors.last())
+    }
+
+    private fun stars(w: Float, h: Float, t: Float) {
+        val night = DayCycle.nightness
+        if (night <= .02f) return
+        for (i in starField.indices) {
+            val (sx, sy) = starField[i]
+            val y = sy * h * .4f
+            val twinkle = .6f + .4f * sin(t * .9f + i * 1.7f)
+            val alpha = (200 - y / h * 350) * night * twinkle
+            p.pixel(sx * w, y, withAlpha(color(0xFFFFF2FF), alpha.toInt()))
         }
-        // Lua crescente.
-        val mx = w * .80f
-        val my = h * .06f
-        sp.disc(mx, my, 7, color(0xFFF6EAFF))
-        sp.disc(mx + 3f, my - 2f, 6, SKY[0])
-        // Sol se pondo com halo pontilhado.
-        val sx = w * .30f
-        val sy = h * .62f
-        sp.ditherDisc(sx, sy, 52, color(0xFFFFB98E), density = 4)
-        sp.ditherDisc(sx, sy, 34, color(0xFFFFCB98), density = 2)
-        sp.disc(sx, sy, 18, color(0xFFFFE0A8))
-        sp.disc(sx, sy, 14, color(0xFFFFF0C8))
+    }
+
+    /** Sol e lua crescente percorrem um arco no céu de acordo com o relógio. */
+    private fun sunAndMoon(w: Float, h: Float) {
+        val sun = DayCycle.arcProgress(5.8f, 18.8f)
+        if (sun >= 0f) {
+            val high = DayCycle.arcHeight(sun)
+            val sx = w * (.12f + .76f * sun)
+            val sy = h * (.66f - .5f * high)
+            p.bitmap(sunHalo.get(110, 110) {
+                it.ditherDisc(55f, 55f, 52, color(0xFFFFB98E), density = 4)
+                it.ditherDisc(55f, 55f, 34, color(0xFFFFCB98), density = 2)
+            }, sx - 55f, sy - 55f, (255 * (1f - .6f * high)).toInt())
+            p.disc(sx, sy, 18, mixColor(color(0xFFFFE0A8), color(0xFFFFF6DC), high))
+            p.disc(sx, sy, 14, mixColor(color(0xFFFFF0C8), color(0xFFFFFFF4), high))
+        }
+        val moon = DayCycle.arcProgress(18.2f, 30.6f)
+        if (moon >= 0f) {
+            val mx = w * (.15f + .7f * moon)
+            val my = h * (.5f - .42f * DayCycle.arcHeight(moon))
+            p.disc(mx, my, 7, color(0xFFF6EAFF))
+            // Recorte da lua crescente com a própria cor do céu naquela altura.
+            val band = ((my / (h * .8f)) * skyColors.size).toInt().coerceIn(0, skyColors.size - 1)
+            p.disc(mx + 3f, my - 2f, 6, skyColors[band])
+        }
     }
 
     // ---------- Montanhas e castelo ----------
@@ -113,8 +149,13 @@ class FantasyScene : SceneRenderer {
         p.fill(cx + 5f, cy - 16f, cx + 9f, cy + 2f, back)
         p.triangle(cx - 10f, cy - 13f, cx - 7f, cy - 18f, cx - 4f, cy - 13f, back)
         p.triangle(cx + 4f, cy - 16f, cx + 7f, cy - 22f, cx + 10f, cy - 16f, back)
-        p.pixel(cx + 6f, cy - 12f, color(0xFFFFE6A8))
-        p.pixel(cx - 8f, cy - 9f, color(0xFFFFE6A8))
+        // Janelas do castelo: acendem com o anoitecer (sem o filtro da paisagem).
+        val tint = p.filter
+        p.filter = null
+        val lights = withAlpha(color(0xFFFFE6A8), (60 + 195 * (1f - DayCycle.daylight)).toInt())
+        p.pixel(cx + 6f, cy - 12f, lights)
+        p.pixel(cx - 8f, cy - 9f, lights)
+        p.filter = tint
 
         p.polygon(color(0xFF9A6FA0),
             -30f + ox * 1.4f, h * .76f + oy, w * .22f + ox * 1.4f, h * .66f + oy,
@@ -162,7 +203,12 @@ class FantasyScene : SceneRenderer {
             if (art.towerWindowX >= 0) {
                 val glow = .5f + .5f * sin(t * 2.4f + island.phase)
                 val warm = mixColor(color(0xFFFFA65C), color(0xFFFFF0B0), glow)
-                p.fill(x + art.towerWindowX, surface - 12f, x + art.towerWindowX + 1f, surface - 10f, warm)
+                // A janela da torre brilha mais à noite e não recebe o filtro da paisagem.
+                val tint = p.filter
+                p.filter = null
+                val alpha = (90 + 165 * (1f - DayCycle.daylight)).toInt()
+                p.fill(x + art.towerWindowX, surface - 12f, x + art.towerWindowX + 1f, surface - 10f, withAlpha(warm, alpha))
+                p.filter = tint
             }
         }
     }
@@ -335,7 +381,21 @@ private val FAR = IslandPalette(
 private val FAR_CLOUD = CloudPalette(color(0xFFF6CBD2), color(0xFFE2A9C2), color(0xFFC291B6))
 private val NEAR_CLOUD = CloudPalette(color(0xFFFFEDE6), color(0xFFF7C4CE), color(0xFFD196BA))
 
-private val SKY = intArrayOf(
+// Céu em cada fase do dia (topo → horizonte).
+private val SKY_NIGHT = intArrayOf(
+    color(0xFF0B0A24), color(0xFF141336), color(0xFF1E1A4A), color(0xFF2A2260),
+    color(0xFF382A70), color(0xFF46337A), color(0xFF523A80), color(0xFF5E4286),
+)
+private val SKY_DAWN = intArrayOf(
+    color(0xFF2E3570), color(0xFF4A4590), color(0xFF7A5AA6), color(0xFFB070A8),
+    color(0xFFE08AA0), color(0xFFF2A698), color(0xFFF8C098), color(0xFFFCD8A8),
+)
+private val SKY_DAY = intArrayOf(
+    color(0xFF3E78D8), color(0xFF4E8AE0), color(0xFF62A0E8), color(0xFF7AB4EE),
+    color(0xFF94C6F2), color(0xFFACD4F4), color(0xFFC4E0F4), color(0xFFDCEBF2),
+)
+private val SKY_DUSK = intArrayOf(
     color(0xFF2B2766), color(0xFF3D2F7A), color(0xFF57388A), color(0xFF7A4294),
     color(0xFFA34E96), color(0xFFD06690), color(0xFFEE8888), color(0xFFF8A884),
 )
+private val SKY_BY_PHASE = arrayOf(SKY_NIGHT, SKY_DAWN, SKY_DAY, SKY_DUSK)

@@ -2,6 +2,7 @@ package com.livingwallpapers.app.scene
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import kotlin.math.floor
@@ -85,6 +86,13 @@ class PixelPainter {
         private set
     var height = 0f
         private set
+
+    /** Filtro de cor aplicado a tudo que for desenhado até ser trocado (ex.: luz do dia). */
+    var filter: ColorFilter? = null
+        set(value) {
+            field = value
+            paint.colorFilter = value
+        }
 
     fun begin(bitmap: Bitmap) {
         if (target !== bitmap) {
@@ -206,19 +214,29 @@ class PixelPainter {
 
 /**
  * Camada estática desenhada uma única vez e reaproveitada a cada quadro.
- * É redesenhada só quando o tamanho muda.
+ * É redesenhada só quando o tamanho ou a [key] mudam (ex.: a cor do céu ao longo do dia).
  */
 class LayerCache {
     private val painter = PixelPainter()
     private var bitmap: Bitmap? = null
+    private var lastKey = 0
 
-    fun get(width: Int, height: Int, draw: (PixelPainter) -> Unit): Bitmap {
+    fun get(width: Int, height: Int, key: Int = 0, draw: (PixelPainter) -> Unit): Bitmap {
         val current = bitmap
-        if (current != null && current.width == width && current.height == height) return current
+        if (current != null && current.width == width && current.height == height) {
+            if (key == lastKey) return current
+            // Mesmo tamanho, conteúdo novo: redesenha no próprio bitmap (sem alocar).
+            current.eraseColor(0)
+            painter.begin(current)
+            draw(painter)
+            lastKey = key
+            return current
+        }
         val next = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         painter.begin(next)
         draw(painter)
         bitmap = next
+        lastKey = key
         return next
     }
 }

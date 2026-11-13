@@ -108,6 +108,11 @@ app/src/main/
 - A renderização é feita em bitmap pequeno (180 px de largura), ampliado com `filterBitmap=false`.
 - Custo medido no emulador (x86_64, 180×400): 1–4 ms por quadro nas três cenas; o primeiro quadro
   da galáxia leva ~45 ms; a nebulosa é gerada numa thread de fundo e compartilhada entre instâncias.
+- **Ciclo de dia e noite (Floresta e Mundo Fantástico):** `scene/DayCycle.kt` lê o relógio do celular
+  e mistura quatro fases — noite (até 5h, após 20h), amanhecer (~6h30), dia (9h–16h30) e entardecer
+  (~18h30). Céu: um degradê por fase. Paisagem: um filtro de cor por fase (`LandscapeTint`). Sol e
+  lua percorrem um arco; estrelas, vaga-lumes, estrelas cadentes e janelas acesas só à noite.
+  Em builds de debug, a preferência `debug_hour` (float) fixa a hora para testes.
 - Cada cena tem seu próprio `WallpaperService`, então o sistema as trata como wallpapers distintos:
   dá para usar uma cena na tela inicial e outra na tela de bloqueio. FPS, velocidade, partículas,
   parallax e economia de bateria são compartilhados por todas.
