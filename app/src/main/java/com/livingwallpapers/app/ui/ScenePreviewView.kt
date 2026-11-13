@@ -7,6 +7,8 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.os.SystemClock
 import android.view.View
+import com.livingwallpapers.app.scene.CanvasScene
+import com.livingwallpapers.app.scene.Scene
 import com.livingwallpapers.app.scene.SceneRegistry
 import com.livingwallpapers.app.scene.SceneRenderer
 import com.livingwallpapers.app.settings.WallpaperSettings
@@ -15,15 +17,18 @@ import com.livingwallpapers.app.settings.WallpaperSettings
 class ScenePreviewView(context: Context) : View(context) {
     private val bitmap = Bitmap.createBitmap(180, 390, Bitmap.Config.ARGB_8888)
     private val bitmapPaint = Paint().apply { isFilterBitmap = false; isAntiAlias = false }
+    private val srcRect = Rect(0, 0, 180, 390)
+    private val dstRect = Rect()
     private var settings: WallpaperSettings = WallpaperSettings()
     private var sceneId: String = settings.sceneId
-    private var renderer: SceneRenderer = SceneRegistry.find(sceneId).create()
+    private var scene: Scene = SceneRegistry.find(sceneId).create(context)
     private val started = SystemClock.elapsedRealtime()
+
     fun updateSettings(next: WallpaperSettings) {
         settings = next
         if (next.sceneId != sceneId) {
             sceneId = next.sceneId
-            renderer = SceneRegistry.find(sceneId).create()
+            scene = SceneRegistry.find(sceneId).create(context)
         }
         invalidate()
     }
@@ -31,8 +36,19 @@ class ScenePreviewView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val elapsed = (SystemClock.elapsedRealtime() - started) / 1000f
-        renderer.render(bitmap, elapsed, 0f, 0f, settings)
-        canvas.drawBitmap(bitmap, Rect(0, 0, 180, 390), Rect(0, 0, width, height), bitmapPaint)
+        when (val s = scene) {
+            is SceneRenderer -> {
+                s.render(bitmap, elapsed, 0f, 0f, settings)
+                dstRect.set(0, 0, width, height)
+                canvas.drawBitmap(bitmap, srcRect, dstRect, bitmapPaint)
+            }
+            is CanvasScene -> {
+                canvas.save()
+                canvas.clipRect(0, 0, width, height)
+                s.draw(canvas, width, height, elapsed, 0f, 0f, settings)
+                canvas.restore()
+            }
+        }
         // A prévia é atualizada apenas quando a tela do aplicativo está visível.
         if (isAttachedToWindow && windowVisibility == VISIBLE) {
             postInvalidateDelayed(1000L / settings.maxFps)

@@ -9,4 +9,7 @@
 
     <string name="wallpaper_fantasy_name">Mundo Fantástico</string>
     <string name="wallpaper_fantasy_description">Ilhas flutuantes com cachoeiras, nuvens em movimento e um castelo ao pôr do sol.</string>
+
+    <string name="wallpaper_council_name">Mystic Council</string>
+    <string name="wallpaper_council_description">Cinco figuras místicas reunidas em silêncio, com suas magias se manifestando de forma sutil.</string>
 </resources>

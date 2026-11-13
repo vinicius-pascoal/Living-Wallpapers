@@ -18,7 +18,9 @@ import android.os.SystemClock
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
+import com.livingwallpapers.app.scene.CanvasScene
 import com.livingwallpapers.app.scene.SceneRegistry
+import com.livingwallpapers.app.scene.SceneRenderer
 import com.livingwallpapers.app.settings.WallpaperSettings
 import com.livingwallpapers.app.settings.SettingsRepository
 import kotlin.math.max
@@ -46,7 +48,10 @@ abstract class SceneWallpaperService : WallpaperService() {
             ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         private val prefs = SettingsRepository.preferences(this@SceneWallpaperService)
         private var settings: WallpaperSettings = SettingsRepository.load(this@SceneWallpaperService)
-        private val renderer = SceneRegistry.find(sceneId).create()
+        private val renderer = SceneRegistry.find(sceneId).create(this@SceneWallpaperService)
+        private val srcRect = Rect()
+        private val dstRect = Rect()
+        private var hardwareCanvasFailed = false
 
         private var visible = false
         private var surfaceReady = false
@@ -167,21 +172,38 @@ abstract class SceneWallpaperService : WallpaperService() {
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
+        private fun lockFastCanvas(): Canvas? =
+            if (hardwareCanvasFailed) surfaceHolder.lockCanvas()
+            else try {
+                surfaceHolder.lockHardwareCanvas()
+            } catch (e: RuntimeException) {
+                hardwareCanvasFailed = true
+                Log.w("LivingWallpapers", "Canvas de hardware indisponível; usando software", e)
+                surfaceHolder.lockCanvas()
+            }
+
         private fun renderFrame() {
             val bitmap = raster ?: return
             if (!surfaceReady || screenWidth == 0 || screenHeight == 0) return
             val elapsed = (SystemClock.elapsedRealtime() - bootMillis) / 1000f
-            renderer.render(bitmap, elapsed, tiltX, tiltY, settings)
+            val scene = renderer
+            if (scene is SceneRenderer) scene.render(bitmap, elapsed, tiltX, tiltY, settings)
             var canvas: Canvas? = null
             try {
-                canvas = surfaceHolder.lockCanvas() ?: return
-                canvas.drawColor(Color.BLACK)
-                canvas.drawBitmap(
-                    bitmap,
-                    Rect(0, 0, bitmap.width, bitmap.height),
-                    Rect(0, 0, canvas.width, canvas.height),
-                    paint,
-                )
+                when (scene) {
+                    is SceneRenderer -> {
+                        canvas = surfaceHolder.lockCanvas() ?: return
+                        canvas.drawColor(Color.BLACK)
+                        srcRect.set(0, 0, bitmap.width, bitmap.height)
+                        dstRect.set(0, 0, canvas.width, canvas.height)
+                        canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+                    }
+                    is CanvasScene -> {
+                        // Resolução nativa: usa o Canvas acelerado por hardware quando possível.
+                        canvas = lockFastCanvas() ?: return
+                        scene.draw(canvas, canvas.width, canvas.height, elapsed, tiltX, tiltY, settings)
+                    }
+                }
             } catch (e: RuntimeException) {
                 // A surface pode desaparecer quando o usuário bloqueia o aparelho.
                 Log.w("LivingWallpapers", "Surface indisponível para desenhar", e)

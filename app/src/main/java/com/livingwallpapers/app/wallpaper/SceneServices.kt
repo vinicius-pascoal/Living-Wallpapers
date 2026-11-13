@@ -1,5 +1,6 @@
 package com.livingwallpapers.app.wallpaper
 
+import com.livingwallpapers.app.scene.council.MysticCouncilScene
 import com.livingwallpapers.app.scene.fantasy.FantasyScene
 import com.livingwallpapers.app.scene.forest.ForestScene
 import com.livingwallpapers.app.scene.galaxy.GalaxyScene
@@ -17,4 +18,8 @@ class GalaxyWallpaperService : SceneWallpaperService() {
 
 class FantasyWallpaperService : SceneWallpaperService() {
     override val sceneId = FantasyScene.ID
+}
+
+class CouncilWallpaperService : SceneWallpaperService() {
+    override val sceneId = MysticCouncilScene.ID
 }

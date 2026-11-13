@@ -1,8 +1,10 @@
 package com.livingwallpapers.app.scene
 
+import com.livingwallpapers.app.scene.council.MysticCouncilScene
 import com.livingwallpapers.app.scene.fantasy.FantasyScene
 import com.livingwallpapers.app.scene.forest.ForestScene
 import com.livingwallpapers.app.scene.galaxy.GalaxyScene
+import com.livingwallpapers.app.wallpaper.CouncilWallpaperService
 import com.livingwallpapers.app.wallpaper.FantasyWallpaperService
 import com.livingwallpapers.app.wallpaper.ForestWallpaperService
 import com.livingwallpapers.app.wallpaper.GalaxyWallpaperService
@@ -14,22 +16,29 @@ object SceneRegistry {
             id = ForestScene.ID,
             title = "Floresta Viva",
             subtitle = "Floresta ao anoitecer com vaga-lumes",
-            create = ::ForestScene,
+            create = { ForestScene() },
             service = ForestWallpaperService::class.java,
         ),
         SceneInfo(
             id = GalaxyScene.ID,
             title = "Galáxia",
             subtitle = "Galáxia espiral procedural com nebulosas",
-            create = ::GalaxyScene,
+            create = { GalaxyScene() },
             service = GalaxyWallpaperService::class.java,
         ),
         SceneInfo(
             id = FantasyScene.ID,
             title = "Mundo Fantástico",
             subtitle = "Ilhas flutuantes entre nuvens ao pôr do sol",
-            create = ::FantasyScene,
+            create = { FantasyScene() },
             service = FantasyWallpaperService::class.java,
+        ),
+        SceneInfo(
+            id = MysticCouncilScene.ID,
+            title = "Mystic Council",
+            subtitle = "Conselho de cinco figuras místicas em silhueta",
+            create = { MysticCouncilScene(it) },
+            service = CouncilWallpaperService::class.java,
         ),
     )
 

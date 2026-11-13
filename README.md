@@ -1,13 +1,28 @@
 # Living Wallpapers — Wallpapers animados Android
 
-Projeto Android **Kotlin + Jetpack Compose + WallpaperService** com uma coleção de cenas em pixel art
-renderizadas proceduralmente em 2D nativo (sem imagens externas).
+Projeto Android **Kotlin + Jetpack Compose + WallpaperService** com uma coleção de cenas animadas:
+três em pixel art procedural (sem imagens) e uma baseada em ilustração.
 
 | Cena | O que tem |
 | --- | --- |
 | **Floresta Viva** | Céu com dithering, lua com halo, nuvens passando, estrelas cadentes, pinheiros balançando ao vento, cabana com janela tremulando e fumaça, névoa, vaga-lumes e folhas |
 | **Galáxia** | Nebulosa gerada por ruído (fBm com distorção), galáxia espiral girando, estrelas em 3 camadas de profundidade, cometas, planeta com anéis e tempestade |
 | **Mundo Fantástico** | Pôr do sol, castelo nas montanhas, ilhas flutuantes derivando e balançando, cachoeiras caindo no mar de nuvens, nuvens em camadas, pássaros e esporos luminosos |
+| **Mystic Council** | Ilustração original intacta + efeitos: asas e halo do anjo respirando, raios e penas douradas, livro brilhando; olhos âmbar do autômato (piscam), vapor e faíscas; orbe do vazio com fragmentos orbitando e partículas atraídas; olho eldritch com pupila, piscadas e anéis; cristal azul, fragmentos e símbolos arcanos; asas negras, tentáculo e caudas balançando; névoa e partículas |
+
+### Como o Mystic Council anima uma imagem única
+
+A ilustração (`res/drawable-nodpi/mystic_council.png`, 941×1672) não é redesenhada nem recortada:
+
+- **Luzes:** na carga, extrai-se um "mapa de brilho" de cada fonte de luz (só pixels luminosos;
+  o resto vira preto). Somado em modo aditivo com intensidade pulsante, ele intensifica asas, orbes
+  e cristal sem clarear o fundo nem as silhuetas.
+- **Movimento orgânico:** asas negras, tentáculo e caudas giram levemente em torno de um pivô via
+  `drawBitmapMesh`, com efeito que some suavemente na borda da região — sem buracos nem recortes.
+- **Encaixe:** a imagem ocupa a largura (com 4% de folga para o parallax); o espaço extra fica no
+  topo (relógio) e é preenchido por uma faixa suavizada da própria borda da imagem.
+- Desenha em resolução nativa com `lockHardwareCanvas` (cai para software se indisponível).
+- Coordenadas de cada efeito ficam em `scene/council/MysticCouncilScene.kt`, no espaço da imagem.
 
 ## Parâmetros iniciais
 
@@ -59,16 +74,17 @@ app/src/main/
 │   ├── scene/forest/ForestScene.kt           # Cena "Floresta Viva"
 │   ├── scene/galaxy/GalaxyScene.kt           # Cena "Galáxia"
 │   ├── scene/fantasy/FantasyScene.kt         # Cena "Mundo Fantástico"
+│   ├── scene/council/MysticCouncilScene.kt   # Cena "Mystic Council" (ilustração + efeitos)
 │   ├── settings/WallpaperSettings.kt         # Configuração + regras de FPS
 │   ├── settings/SettingsRepository.kt        # Persistência em SharedPreferences
 │   ├── ui/ScenePreviewView.kt                # Prévia ao vivo no app
 │   ├── wallpaper/SceneWallpaperService.kt    # Serviço base: superfície, quadros e sensores
-│   └── wallpaper/SceneServices.kt            # Um serviço por cena (Forest/Galaxy/FantasyWallpaperService)
+│   └── wallpaper/SceneServices.kt            # Um serviço por cena (Forest/Galaxy/Fantasy/CouncilWallpaperService)
 └── res/
-    ├── drawable-nodpi/{forest,galaxy,fantasy}_thumbnail.png
+    ├── drawable-nodpi/{forest,galaxy,fantasy,council}_thumbnail.png, mystic_council.png
     ├── drawable/app_icon.xml
     ├── values/{styles,strings}.xml
-    └── xml/wallpaper_{forest,galaxy,fantasy}.xml   # Descrição e miniatura de cada wallpaper
+    └── xml/wallpaper_{forest,galaxy,fantasy,council}.xml   # Descrição e miniatura de cada wallpaper
 ```
 
 ### Como adicionar uma cena nova
