@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.LivingWallpapers" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0D1425</item>
+        <item name="android:navigationBarColor">#0D1425</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
