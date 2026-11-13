@@ -1,8 +1,13 @@
 # Living Wallpapers — Wallpapers animados Android
 
 Projeto Android **Kotlin + Jetpack Compose + WallpaperService** com uma coleção de cenas em pixel art
-renderizadas proceduralmente em 2D nativo. Primeira cena: **Floresta Viva** (floresta ao anoitecer com lua,
-estrelas, montanhas, árvores em camadas, vaga-lumes, folhas e névoa).
+renderizadas proceduralmente em 2D nativo (sem imagens externas).
+
+| Cena | O que tem |
+| --- | --- |
+| **Floresta Viva** | Céu com dithering, lua com halo, nuvens passando, estrelas cadentes, pinheiros balançando ao vento, cabana com janela tremulando e fumaça, névoa, vaga-lumes e folhas |
+| **Galáxia** | Nebulosa gerada por ruído (fBm com distorção), galáxia espiral girando, estrelas em 3 camadas de profundidade, cometas, planeta com anéis e tempestade |
+| **Mundo Fantástico** | Pôr do sol, castelo nas montanhas, ilhas flutuantes derivando e balançando, cachoeiras caindo no mar de nuvens, nuvens em camadas, pássaros e esporos luminosos |
 
 ## Parâmetros iniciais
 
@@ -17,19 +22,18 @@ estrelas, montanhas, árvores em camadas, vaga-lumes, folhas e névoa).
 
 **Economia de bateria:** o wallpaper não renderiza enquanto invisível; registra sensores apenas
 quando visível e quando parallax está ativo. Com a economia do Android ativada, reduz o limite para
-15 FPS. Cada cena pode reduzir efeitos extras (na floresta: brilho dos vaga-lumes, folhas e névoa).
+15 FPS. Cada cena também corta efeitos extras (brilhos, fumaça, respingos, menos partículas).
 
 ## Requisitos
 
-- Android Studio com JDK 17 ou 21, Android SDK Platform 36 e SDK Build Tools instalados.
-- Gradle 8.13 e Android Gradle Plugin 8.13.0; Kotlin 2.3.0.
+- Android Studio com JDK 21 (o Gradle 9.3 ainda não roda com JDK 25), Android SDK Platform 37.
+- Gradle 9.3.1, Android Gradle Plugin 9.1.0 (Kotlin embutido) e plugin Compose 2.3.0.
 - Celular Android 8.0 (API 26) ou superior; testagem prioritária no Samsung Galaxy S25 Edge.
 - Internet para sincronizar dependências na primeira importação.
 
-> **Importante sobre o Gradle Wrapper:** este projeto contém `gradle/wrapper/gradle-wrapper.properties`,
-> mas não inclui `gradle-wrapper.jar` nem os scripts `gradlew`. Abra o projeto no Android Studio usando
-> uma instalação local do Gradle 8.13 ou gere o wrapper com `gradle wrapper --gradle-version 8.13`.
-> Depois disso, `./gradlew assembleDebug` funcionará.
+> **Gradle Wrapper:** o projeto contém `gradle/wrapper/gradle-wrapper.properties`, mas não o
+> `gradle-wrapper.jar` nem os scripts `gradlew`. O Android Studio baixa o Gradle 9.3.1 sozinho;
+> para linha de comando, gere o wrapper com `gradle wrapper --gradle-version 9.3.1`.
 
 ## Executar
 
@@ -51,7 +55,10 @@ app/src/main/
 │   ├── MainActivity.kt                       # Configuração em Compose (cena, FPS, efeitos)
 │   ├── scene/SceneRenderer.kt                # Interface comum a todas as cenas + SceneInfo
 │   ├── scene/SceneRegistry.kt                # Lista das cenas disponíveis
+│   ├── scene/PixelPainter.kt                 # Desenho pixel art, ruído, dithering, cache de camadas
 │   ├── scene/forest/ForestScene.kt           # Cena "Floresta Viva"
+│   ├── scene/galaxy/GalaxyScene.kt           # Cena "Galáxia"
+│   ├── scene/fantasy/FantasyScene.kt         # Cena "Mundo Fantástico"
 │   ├── settings/WallpaperSettings.kt         # Configuração + regras de FPS
 │   ├── settings/SettingsRepository.kt        # Persistência em SharedPreferences
 │   ├── ui/ScenePreviewView.kt                # Prévia ao vivo no app
@@ -65,8 +72,12 @@ app/src/main/
 
 ### Como adicionar uma cena nova
 
-1. Crie `scene/<nome>/<Nome>Scene.kt` implementando `SceneRenderer` (desenhe no bitmap recebido,
-   use `settings.timeScale()`, `settings.effectiveParticles()` e `settings.batterySaver`).
+1. Crie `scene/<nome>/<Nome>Scene.kt` implementando `SceneRenderer`. Desenhe com um `PixelPainter`
+   (`begin(bitmap)` a cada quadro) e use `settings.timeScale()`, `settings.effectiveParticles()`
+   e `settings.batterySaver`.
+   - Partes estáticas (céu, halos) vão num `LayerCache`, desenhado uma única vez.
+   - Objetos que só se movem (ilhas, nuvens) podem ser pré-desenhados em bitmaps no construtor.
+   - Nada caro na thread principal: geração pesada (como a nebulosa) vai para uma thread de fundo.
 2. Registre a cena em `SceneRegistry.scenes` com `id`, `title`, `subtitle` e `create`.
 3. O seletor de cena aparece automaticamente no app quando há mais de uma cena; o wallpaper
    aplicado troca de cena em tempo real ao mudar a escolha.
@@ -74,6 +85,8 @@ app/src/main/
 ### Observações técnicas
 
 - A renderização é feita em bitmap pequeno (180 px de largura), ampliado com `filterBitmap=false`.
+- Custo medido no emulador (x86_64, 180×400): 1–4 ms por quadro nas três cenas; o primeiro quadro
+  da galáxia leva ~45 ms; a nebulosa é gerada numa thread de fundo e compartilhada entre instâncias.
 - Um único `WallpaperService` desenha a cena escolhida nas configurações.
 - As configurações são atualizadas no wallpaper via listener de SharedPreferences.
 - A prévia da tela de configurações não usa o acelerômetro; o parallax só ocorre no wallpaper.

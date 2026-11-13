@@ -19,7 +19,6 @@ class ScenePreviewView(context: Context) : View(context) {
     private var sceneId: String = settings.sceneId
     private var renderer: SceneRenderer = SceneRegistry.find(sceneId).create()
     private val started = SystemClock.elapsedRealtime()
-
     fun updateSettings(next: WallpaperSettings) {
         settings = next
         if (next.sceneId != sceneId) {
