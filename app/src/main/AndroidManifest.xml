@@ -19,9 +19,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Um serviço por cena: cada um é um wallpaper diferente para o sistema, então dá
+             para usar cenas distintas na tela inicial e na tela de bloqueio. -->
         <service
-            android:name=".wallpaper.LivingWallpaperService"
-            android:label="@string/wallpaper_name"
+            android:name=".wallpaper.ForestWallpaperService"
+            android:label="@string/wallpaper_forest_name"
             android:permission="android.permission.BIND_WALLPAPER"
             android:exported="true">
             <intent-filter>
@@ -29,7 +31,33 @@
             </intent-filter>
             <meta-data
                 android:name="android.service.wallpaper"
-                android:resource="@xml/living_wallpaper" />
+                android:resource="@xml/wallpaper_forest" />
+        </service>
+
+        <service
+            android:name=".wallpaper.GalaxyWallpaperService"
+            android:label="@string/wallpaper_galaxy_name"
+            android:permission="android.permission.BIND_WALLPAPER"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/wallpaper_galaxy" />
+        </service>
+
+        <service
+            android:name=".wallpaper.FantasyWallpaperService"
+            android:label="@string/wallpaper_fantasy_name"
+            android:permission="android.permission.BIND_WALLPAPER"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/wallpaper_fantasy" />
         </service>
     </application>
 </manifest>

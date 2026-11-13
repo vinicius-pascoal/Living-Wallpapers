@@ -62,12 +62,13 @@ app/src/main/
 │   ├── settings/WallpaperSettings.kt         # Configuração + regras de FPS
 │   ├── settings/SettingsRepository.kt        # Persistência em SharedPreferences
 │   ├── ui/ScenePreviewView.kt                # Prévia ao vivo no app
-│   └── wallpaper/LivingWallpaperService.kt   # Serviço, superfície e sensores
+│   ├── wallpaper/SceneWallpaperService.kt    # Serviço base: superfície, quadros e sensores
+│   └── wallpaper/SceneServices.kt            # Um serviço por cena (Forest/Galaxy/FantasyWallpaperService)
 └── res/
-    ├── drawable-nodpi/forest_thumbnail.png
+    ├── drawable-nodpi/{forest,galaxy,fantasy}_thumbnail.png
     ├── drawable/app_icon.xml
     ├── values/{styles,strings}.xml
-    └── xml/living_wallpaper.xml
+    └── xml/wallpaper_{forest,galaxy,fantasy}.xml   # Descrição e miniatura de cada wallpaper
 ```
 
 ### Como adicionar uma cena nova
@@ -78,16 +79,20 @@ app/src/main/
    - Partes estáticas (céu, halos) vão num `LayerCache`, desenhado uma única vez.
    - Objetos que só se movem (ilhas, nuvens) podem ser pré-desenhados em bitmaps no construtor.
    - Nada caro na thread principal: geração pesada (como a nebulosa) vai para uma thread de fundo.
-2. Registre a cena em `SceneRegistry.scenes` com `id`, `title`, `subtitle` e `create`.
-3. O seletor de cena aparece automaticamente no app quando há mais de uma cena; o wallpaper
-   aplicado troca de cena em tempo real ao mudar a escolha.
+2. Crie o serviço da cena em `wallpaper/SceneServices.kt` (`class XWallpaperService : SceneWallpaperService()`
+   com `override val sceneId`), declare-o no `AndroidManifest.xml` e crie `res/xml/wallpaper_x.xml`
+   com descrição e miniatura (`res/drawable-nodpi/x_thumbnail.png`, 360×780).
+3. Registre a cena em `SceneRegistry.scenes` com `id`, `title`, `subtitle`, `create` e `service`.
+   O seletor do app mostra a cena automaticamente.
 
 ### Observações técnicas
 
 - A renderização é feita em bitmap pequeno (180 px de largura), ampliado com `filterBitmap=false`.
 - Custo medido no emulador (x86_64, 180×400): 1–4 ms por quadro nas três cenas; o primeiro quadro
   da galáxia leva ~45 ms; a nebulosa é gerada numa thread de fundo e compartilhada entre instâncias.
-- Um único `WallpaperService` desenha a cena escolhida nas configurações.
+- Cada cena tem seu próprio `WallpaperService`, então o sistema as trata como wallpapers distintos:
+  dá para usar uma cena na tela inicial e outra na tela de bloqueio. FPS, velocidade, partículas,
+  parallax e economia de bateria são compartilhados por todas.
 - As configurações são atualizadas no wallpaper via listener de SharedPreferences.
 - A prévia da tela de configurações não usa o acelerômetro; o parallax só ocorre no wallpaper.
 - Sem internet, anúncios, rastreamento, permissão de armazenamento ou serviço em primeiro plano.

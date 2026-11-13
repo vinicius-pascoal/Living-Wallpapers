@@ -1,6 +1,7 @@
 package com.livingwallpapers.app.scene
 
 import android.graphics.Bitmap
+import android.service.wallpaper.WallpaperService
 import com.livingwallpapers.app.settings.WallpaperSettings
 
 /**
@@ -17,4 +18,6 @@ data class SceneInfo(
     val title: String,
     val subtitle: String,
     val create: () -> SceneRenderer,
+    /** Serviço de wallpaper dedicado a esta cena (aparece como wallpaper próprio no sistema). */
+    val service: Class<out WallpaperService>,
 )

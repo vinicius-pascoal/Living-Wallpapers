@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">Living Wallpapers</string>
-    <string name="wallpaper_name">Living Wallpapers</string>
-    <string name="wallpaper_description">Cenas em pixel art animadas, com profundidade por movimento. Escolha a cena no app.</string>
+
+    <string name="wallpaper_forest_name">Floresta Viva</string>
+    <string name="wallpaper_forest_description">Floresta pixel art ao anoitecer, com lua, vaga-lumes, cabana e pinheiros ao vento.</string>
+
+    <string name="wallpaper_galaxy_name">Galáxia</string>
+    <string name="wallpaper_galaxy_description">Galáxia espiral procedural girando entre nebulosas, com cometas e um planeta com anéis.</string>
+
+    <string name="wallpaper_fantasy_name">Mundo Fantástico</string>
+    <string name="wallpaper_fantasy_description">Ilhas flutuantes com cachoeiras, nuvens em movimento e um castelo ao pôr do sol.</string>
 </resources>

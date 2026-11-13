@@ -24,7 +24,14 @@ import com.livingwallpapers.app.settings.SettingsRepository
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class LivingWallpaperService : WallpaperService() {
+/**
+ * Serviço base: cada cena tem sua própria subclasse (um wallpaper distinto para o sistema),
+ * permitindo usar cenas diferentes na tela inicial e na tela de bloqueio.
+ */
+abstract class SceneWallpaperService : WallpaperService() {
+
+    /** Cena fixa deste wallpaper (id registrado em SceneRegistry). */
+    protected abstract val sceneId: String
 
     override fun onCreateEngine(): Engine = SceneEngine()
 
@@ -37,9 +44,9 @@ class LivingWallpaperService : WallpaperService() {
         private val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         private val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
             ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        private val prefs = SettingsRepository.preferences(this@LivingWallpaperService)
-        private var settings: WallpaperSettings = SettingsRepository.load(this@LivingWallpaperService)
-        private var renderer = SceneRegistry.find(settings.sceneId).create()
+        private val prefs = SettingsRepository.preferences(this@SceneWallpaperService)
+        private var settings: WallpaperSettings = SettingsRepository.load(this@SceneWallpaperService)
+        private val renderer = SceneRegistry.find(sceneId).create()
 
         private var visible = false
         private var surfaceReady = false
@@ -119,11 +126,7 @@ class LivingWallpaperService : WallpaperService() {
         }
 
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-            val previousScene = settings.sceneId
-            settings = SettingsRepository.load(this@LivingWallpaperService)
-            if (settings.sceneId != previousScene) {
-                renderer = SceneRegistry.find(settings.sceneId).create()
-            }
+            settings = SettingsRepository.load(this@SceneWallpaperService)
             refreshSensor()
             restartFrames()
         }

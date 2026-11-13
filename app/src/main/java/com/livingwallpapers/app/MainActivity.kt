@@ -45,7 +45,6 @@ import com.livingwallpapers.app.scene.SceneRegistry
 import com.livingwallpapers.app.settings.WallpaperSettings
 import com.livingwallpapers.app.settings.SettingsRepository
 import com.livingwallpapers.app.ui.ScenePreviewView
-import com.livingwallpapers.app.wallpaper.LivingWallpaperService
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
@@ -61,10 +60,12 @@ class MainActivity : ComponentActivity() {
                 ),
             ) {
                 SettingsScreen(onApply = {
+                    // Cada cena tem seu próprio serviço: aplica o wallpaper da cena escolhida.
+                    val scene = SceneRegistry.find(SettingsRepository.load(this@MainActivity).sceneId)
                     val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
                         putExtra(
                             WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
-                            android.content.ComponentName(this@MainActivity, LivingWallpaperService::class.java),
+                            android.content.ComponentName(this@MainActivity, scene.service),
                         )
                     }
                     // O seletor nativo decide onde a One UI permite aplicar o wallpaper.
@@ -148,8 +149,11 @@ private fun SettingsScreen(onApply: () -> Unit) {
                 settings.batterySaver) { change(settings.copy(batterySaver = it)) }
 
             Button(onClick = onApply, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                Text("Aplicar wallpaper")
+                Text("Aplicar \"${SceneRegistry.find(settings.sceneId).title}\"")
             }
+            Text("Cada cena é um wallpaper separado: aplique uma na tela inicial e outra na tela de bloqueio.",
+                style = MaterialTheme.typography.bodySmall, color = Color(0xFFADBBB9),
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(10.dp))
         }
     }
