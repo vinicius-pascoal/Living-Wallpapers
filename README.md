@@ -8,7 +8,7 @@ três em pixel art procedural (sem imagens) e uma baseada em ilustração.
 | **Floresta Viva** | Céu com dithering, lua com halo, nuvens passando, estrelas cadentes, pinheiros balançando ao vento, cabana com janela tremulando e fumaça, névoa, vaga-lumes e folhas |
 | **Galáxia** | Nebulosa gerada por ruído (fBm com distorção), galáxia espiral girando, estrelas em 3 camadas de profundidade, cometas, planeta com anéis e tempestade |
 | **Mundo Fantástico** | Pôr do sol, castelo nas montanhas, ilhas flutuantes derivando e balançando, cachoeiras caindo no mar de nuvens, nuvens em camadas, pássaros e esporos luminosos |
-| **Mystic Council** | Ilustração original intacta + efeitos: asas e halo do anjo respirando, raios e penas douradas, livro brilhando; olhos âmbar do autômato (piscam), vapor e faíscas; orbe do vazio com fragmentos orbitando e partículas atraídas; olho eldritch com pupila, piscadas e anéis; cristal azul, fragmentos e símbolos arcanos; asas negras, tentáculo e caudas balançando; névoa e partículas |
+| **Mystic Council** | Ilustração original intacta + vida: personagens respirando, anjo levitando com asas batendo devagar, asas negras, tentáculo, cabelos e caudas balançando; círculo mágico na mesa trocando de cor com brasas subindo; fios de energia ligando cada magia à mesa; onda mágica periódica que acende as fontes em sequência; olhos âmbar que piscam, vapor e faíscas; orbe com fragmentos e ondas gravitacionais; olho eldritch flutuante com pupila, piscadas e três anéis; cristal azul, fragmentos e símbolos arcanos; raios e penas douradas; névoa e partículas |
 
 ### Como o Mystic Council anima uma imagem única
 
@@ -17,8 +17,10 @@ A ilustração (`res/drawable-nodpi/mystic_council.png`, 941×1672) não é rede
 - **Luzes:** na carga, extrai-se um "mapa de brilho" de cada fonte de luz (só pixels luminosos;
   o resto vira preto). Somado em modo aditivo com intensidade pulsante, ele intensifica asas, orbes
   e cristal sem clarear o fundo nem as silhuetas.
-- **Movimento orgânico:** asas negras, tentáculo e caudas giram levemente em torno de um pivô via
-  `drawBitmapMesh`, com efeito que some suavemente na borda da região — sem buracos nem recortes.
+- **Movimento orgânico:** respiração, levitação, asas, tentáculo, cabelos e caudas são deformações via
+  `drawBitmapMesh` (giro, estiramento ou elevação em torno de um pivô), sumindo suavemente na borda
+  da região — sem buracos nem recortes. Mapas de brilho e efeitos usam a mesma deformação, então
+  continuam alinhados ao que se move.
 - **Encaixe:** a imagem ocupa a largura (com 4% de folga para o parallax); o espaço extra fica no
   topo (relógio) e é preenchido por uma faixa suavizada da própria borda da imagem.
 - Desenha em resolução nativa com `lockHardwareCanvas` (cai para software se indisponível).
